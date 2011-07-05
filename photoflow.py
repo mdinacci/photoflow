@@ -69,7 +69,7 @@ class MediaManager(object):
             shutil.copyfile(image, final_dest)
 
         def is_image(image):
-            return image.endswith(".JPG")
+            return image.lower().endswith(".jpg")
 
         def scan(media, temp_last_image):
             target = ""
