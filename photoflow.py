@@ -7,30 +7,22 @@
 
 import os, time, shutil
 
-MEDIA_DIR = "/media"
 LAST_MOD_FILE = ".lastmod"
 
-IMAGE_FILTER = ("jpg","JPG")
-VIDEO_FILTER = ("mov","MOV","avi","AVI")
-RAW_FILTER = ("raw","RAW")
+IMAGE_FILTER = ("jpg")
+VIDEO_FILTER = ("mov","avi")
+RAW_FILTER = ("raw")
 
 class MediaManager(object):
     last_media_name = ""
 
-    def list(self):
-        join = os.path.join
-        all_medias = os.listdir(MEDIA_DIR)
-        
-        available_medias = []
-        
-        for media in all_medias:
-            media = join(MEDIA_DIR,media)
-            if os.path.isdir(media) and not os.path.islink(media):
-                available_medias.append(media)
-                
-        return available_medias
+    def import_photos(self):
+        self._import_content(IMAGE_FILTER)
 
-    def import_content(self, media_filters):
+    def import_videos(self):
+        self._import_content(VIDEO_FILTER)
+
+    def _import_content(self, media_filters):
         join = os.path.join
 
         self.media_filters = media_filters
@@ -72,7 +64,10 @@ class MediaManager(object):
             
             final_dest = join(dest, year, month, day, os.path.basename(media))
             print "Copying %s to %s" % (media, final_dest)
-            shutil.copyfile(media, final_dest)
+            if media != final_dest:
+                shutil.copyfile(media, final_dest)
+            else:
+                print "Source and destination files are the same, skipping"
 
         def is_valid(media):
             media_lower = media.lower()
@@ -94,7 +89,7 @@ class MediaManager(object):
                             temp_last_media = f
                             self.temp_last_media_name = temp_last_media
         
-        scan(self.media, "") 
+        scan(self.source, "") 
         
         # update LAST_MOD_FILE
         if hasattr(self, "temp_last_media_name"):
@@ -105,10 +100,9 @@ class MediaManager(object):
         else:
             print "Medias are up to date"
         
+    def select_source(self, source):
+        self.source = source
         
-    def select_source(self, media):
-        self.media = media
-
     def select_destination(self, dest):
         self.destination = dest
         self.last_mod_file = os.path.join(self.destination, LAST_MOD_FILE)
@@ -143,12 +137,12 @@ first argument is the path to the source, second the path to destination",
     mm = MediaManager()
 
     if option.photos:
-        mm.media = option.photos[0]
+        mm.select_source(option.photos[0])
         mm.select_destination(option.photos[1])
-        mm.import_content(IMAGE_FILTER)
+        mm.import_photos()
 
     if option.videos:
-        mm.media = option.videos[0]
+        mm.select_source(option.videos[0])
         mm.select_destination(option.videos[1])
-        mm.import_content(VIDEO_FILTER)
+        mm.import_videos()
  
