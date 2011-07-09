@@ -100,10 +100,10 @@ class MediaManager(object):
         else:
             print "Medias are up to date"
         
-    def select_source(self, source):
+    def set_source(self, source):
         self.source = source
         
-    def select_destination(self, dest):
+    def set_destination(self, dest):
         self.destination = dest
         self.last_mod_file = os.path.join(self.destination, LAST_MOD_FILE)
         if os.path.exists(self.last_mod_file):
