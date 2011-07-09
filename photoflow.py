@@ -16,6 +16,9 @@ RAW_FILTER = ("raw")
 class MediaManager(object):
     last_media_name = ""
 
+    def register_subscriber(self, subscriber):
+        self._subscriber = subscriber
+
     def import_photos(self):
         self._import_content(IMAGE_FILTER)
 
@@ -66,6 +69,7 @@ class MediaManager(object):
             print "Copying %s to %s" % (media, final_dest)
             if media != final_dest:
                 shutil.copyfile(media, final_dest)
+                self._subscriber.update(final_dest)
             else:
                 print "Source and destination files are the same, skipping"
 
@@ -76,6 +80,8 @@ class MediaManager(object):
                     return True
             return False
 
+        # add files to import in a list so I can return to UI the number
+        # of media to import. This will make the progress bar more useful
         def scan(media, temp_last_media):
             target = ""
             for f in os.listdir(media):
