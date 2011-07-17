@@ -6,18 +6,21 @@
 # Author: Marco Dinacci - www.intransitione.com -
 
 import os, time, shutil
+join = os.path.join
 
 LAST_MOD_FILE = ".lastmod"
 
-IMAGE_FILTER = ("jpg")
-VIDEO_FILTER = ("mov","avi")
-RAW_FILTER = ("raw")
+IMAGE_FILTER = ("jpg",)
+VIDEO_FILTER = ("mov","avi",)
+RAW_FILTER = ("raw",)
 
 class MediaManager(object):
     last_media_name = ""
+    _has_gui = False
 
-    def register_subscriber(self, subscriber):
-        self._subscriber = subscriber
+    def register_gui(self, gui):
+        self._gui = gui
+        self._has_gui = True
 
     def import_photos(self):
         self._import_content(IMAGE_FILTER)
@@ -25,63 +28,62 @@ class MediaManager(object):
     def import_videos(self):
         self._import_content(VIDEO_FILTER)
 
-    def _import_content(self, media_filters):
-        join = os.path.join
-
-        self.media_filters = media_filters
+    def import_media(self, media, dest):
+        mod_time = os.path.getmtime(media)
+        time_struct = time.gmtime(mod_time)
+        day = str(time_struct.tm_mday)
+        month = str(time_struct.tm_mon)
+        year = str(time_struct.tm_year)
         
-        def import_media(media, dest):
-            mod_time = os.path.getmtime(media)
-            time_struct = time.gmtime(mod_time)
-            day = str(time_struct.tm_mday)
-            month = str(time_struct.tm_mon)
-            year = str(time_struct.tm_year)
-            
-            # media is new, check if destination directories exists
-            
-            dest_dir = join(dest, year)
+        # media is new, check if destination directories exists
+        
+        dest_dir = join(dest, year)
+        if os.path.exists(dest_dir):
+            dest_dir = join(dest, year, month)
             if os.path.exists(dest_dir):
-                dest_dir = join(dest, year, month)
-                if os.path.exists(dest_dir):
-                    dest_dir = join(dest, year, month, day)
-                    if not os.path.exists(dest_dir):
-                        print "Creating directory %s" % dest_dir
-                        os.mkdir(dest_dir)
-                else:
-                    dir = join(dest, year,month)
-                    print "Creating directory %s" % dir
-                    os.mkdir(dir)
-                    dir = join(dest,year,month,day)
-                    print "Creating directory %s" % dir
-                    os.mkdir(dir)
+                dest_dir = join(dest, year, month, day)
+                if not os.path.exists(dest_dir):
+                    print "Creating directory %s" % dest_dir
+                    os.mkdir(dest_dir)
             else:
-                dir = join(dest,year)
-                print "Creating directory %s" % dir
-                os.mkdir(dir)
-                dir = join(dest,year,month)
+                dir = join(dest, year,month)
                 print "Creating directory %s" % dir
                 os.mkdir(dir)
                 dir = join(dest,year,month,day)
                 print "Creating directory %s" % dir
                 os.mkdir(dir)
-            
-            final_dest = join(dest, year, month, day, os.path.basename(media))
-            print "Copying %s to %s" % (media, final_dest)
-            if media != final_dest:
-                shutil.copyfile(media, final_dest)
-                self._subscriber.update(final_dest)
-            else:
-                print "Source and destination files are the same, skipping"
+        else:
+            dir = join(dest,year)
+            print "Creating directory %s" % dir
+            os.mkdir(dir)
+            dir = join(dest,year,month)
+            print "Creating directory %s" % dir
+            os.mkdir(dir)
+            dir = join(dest,year,month,day)
+            print "Creating directory %s" % dir
+            os.mkdir(dir)
+        
+        final_dest = join(dest, year, month, day, os.path.basename(media))
+        #print "Copying %s to %s" % (media, final_dest)
+        if media != final_dest:
+            shutil.copyfile(media, final_dest)
+            if self._has_gui:
+                self._gui.update(final_dest)
+        else:
+            print "Source and destination files are the same, skipping"
 
+    def _import_content(self, media_filters):
+        self.media_filters = media_filters
+        
         def is_valid(media):
             media_lower = media.lower()
             for media_filter in self.media_filters:
+                print media_lower, media_filter, media_lower.endswith(media_filter)
                 if media_lower.endswith(media_filter):
                     return True
             return False
 
-        # add files to import in a list so I can return to UI the number
-        # of media to import. This will make the progress bar more useful
+        self.list_of_medias = []
         def scan(media, temp_last_media):
             target = ""
             for f in os.listdir(media):
@@ -90,12 +92,16 @@ class MediaManager(object):
                     scan(target,"")
                 else:
                     if f > self.last_media_name and is_valid(f):
-                        import_media(target, self.destination)
+                        self.list_of_medias.append((target, self.destination))
+                        #import_media(target, self.destination)
                         if f > temp_last_media:
                             temp_last_media = f
                             self.temp_last_media_name = temp_last_media
         
         scan(self.source, "") 
+        if self._has_gui:
+            self._gui.set_total(len(self.list_of_medias))
+        self.import_media_list(self.list_of_medias)
         
         # update LAST_MOD_FILE
         if hasattr(self, "temp_last_media_name"):
@@ -103,9 +109,22 @@ class MediaManager(object):
             f = open(self.last_mod_file,"w")
             f.write(self.temp_last_media_name)
             f.close()
+
+            if self._has_gui:
+                self._gui.message("lastmod updated to: %s" % self.temp_last_media_name)
         else:
-            print "Medias are up to date"
+            msg = "Medias are up to date"
+            if self._has_gui:
+                self._gui.alert(msg)
+            print msg
+
+        if self._has_gui:
+            self._gui.exit()
         
+    def import_media_list(self, medias):
+        for media in medias:
+            self.import_media(media[0], media[1])
+
     def set_source(self, source):
         self.source = source
         
