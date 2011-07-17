@@ -18,11 +18,13 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super(MainWindow, self).__init__()
+        
+        # show the status bar
+        self.statusBar()
 
         self.setWindowTitle("Photoflow")
 
         vbox = QVBoxLayout()
-
         hbox = QHBoxLayout()
        
         # browse button and label
@@ -65,12 +67,18 @@ class MainWindow(QMainWindow):
             mm.set_source(self._source)
             mm.set_destination(config.PHOTOS_DESTINATION)
             mm.register_subscriber(self)
+
+            self.statusBar().showMessage("Importing photos...")
             mm.import_photos()
 
             # TODO show progress
+            self.statusBar().showMessage("Finished importing photos", 5000)
 
             mm.set_destination(config.VIDEOS_DESTINATION)
+
+            self.statusBar().showMessage("Importing videos...")
             mm.import_videos()
+            self.statusBar().showMessage("Finished importing videos", 5000)
 
     def _showImportDialog(self):
         options = QFileDialog.DontResolveSymlinks | QFileDialog.ShowDirsOnly
