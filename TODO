@@ -1,0 +1,2 @@
+- In Windows, make Photoflow appear in the AutoPlay list. Must use WMI: http://timgolden.me.uk/python/wmi/
+- In Linux, make Photoflow appear as soon as the USB is inserted
